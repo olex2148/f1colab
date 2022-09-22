@@ -14,26 +14,18 @@ library(jsonlite)
 library(httr)
 library(ggplot2)
 library(extrafont)
+library(data.table)
+library(viridis)
 
 
-
-circuits <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/circuits.csv')
-constructor_results <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/constructor_results.csv')
-constructor_standings <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/constructor_standings.csv')
-constructors <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/constructors.csv')
-driver_standings <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/driver_standings.csv')
-drivers <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/drivers.csv')
-lap_times <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/lap_times.csv')
-pit_stops <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/pit_stops.csv')
-qualifying <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/qualifying.csv')
-races <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/races.csv')
-results <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/results.csv')
-seasons <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/seasons.csv')
-status <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/status.csv')
-
-
-
-results
+circuits <- fread('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/circuits.csv')
+driver_standings <- fread('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/driver_standings.csv')
+drivers <- fread('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/drivers.csv')
+races <- fread('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/races.csv')
+constructor_standings <- fread('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/constructor_standings.csv')
+results <- fread('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/results.csv')
+constructor_results <- fread('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/constructor_results.csv')
+constructors <- fread('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/constructors.csv')
 
 
 ```
@@ -49,103 +41,65 @@ driver_results_df <- driver_standings %>%
   rename(driver_url = url) %>% 
   left_join(drivers, by = "driverId")
   
-glimpse(driver_results_df)
+head(driver_results_df)
 ```
 
+```{r}
+# merging data tables required for calculations
+constructors_points <- constructors[constructor_results, on = "constructorId"]
+constructors_points <- races[constructors_points, on ="raceId"]
 
+# calculating sum of points per year
+constructors_points <- constructors_points[, .(points_y = sum(points)), by= .(year, constructorId, i.name)]
 
-```{r pressure, echo=FALSE}
-# merging tables 
-w_10  <- results[drivers, on = "driverId"]
-w_10 <- races[w_10, on = "raceId"]
+# Filtering the top 4 teams and the year of comparison
+constructors_points <- constructors_points[i.name %in% c('Red Bull','Mercedes', 'McLaren','Ferrari')]
+constructors_points <- constructors_points[year %in% c(2010:2021)]
 
-# Filtering the wins
-w_10 <- w_10[position == '1']
+# renaming a column
+constructors_points <- constructors_points %>% 
+  rename(Constructor = i.name)
 
-# New column for full driver name
-w_10 <- w_10[, Driver := paste(forename, surname)]
-
-# Calculating number of wins
-w_10 <- w_10[, .(Wins = .N), by = .(driverId, Driver)][order(-Wins)][1:10]
-
-# calculating number of races
-n_r <- results[drivers, on = "driverId"]
-n_r <- n_r[, .(Races = .N), by = .(driverId)][order(driverId)]
-
-# merging the tables
-w_10 <- n_r[w_10, on = "driverId"]
-w_10 <- w_10[, .(Driver, Races, Wins)]
-
-# creating frames for animation
-a <- data.frame(Driver=c("Lewis Hamilton","Michael Schumacher","Sebastian Vettel", 
-                          "Alain Prost", "Ayrton Senna", "Fernando Alonso", "Nigel Mansell",
-                          "Jackie Stewart", "Niki Lauda", "Jim Clark"), 
-                Wins=c(0,0,0,0,0,0,0,0,0,0), 
-                frame=rep('a',10))
-
-b <- data.frame(Driver=c("Lewis Hamilton","Michael Schumacher","Sebastian Vettel", 
-                         "Alain Prost", "Ayrton Senna", "Fernando Alonso", "Nigel Mansell",
-                         "Jackie Stewart", "Niki Lauda", "Jim Clark"), 
-                Wins=c(33,30,17,17,13,10,10,9,8,8), frame=rep('b',10))
-
-c <- data.frame(Driver=c("Lewis Hamilton","Michael Schumacher","Sebastian Vettel", 
-                         "Alain Prost", "Ayrton Senna", "Fernando Alonso", "Nigel Mansell",
-                         "Jackie Stewart", "Niki Lauda", "Jim Clark"), 
-                Wins=c(66,60,34,34,26,20,20,18,16,16), frame=rep('c',10))
-
-d <- data.frame(Driver=c("Lewis Hamilton","Michael Schumacher","Sebastian Vettel", 
-                         "Alain Prost", "Ayrton Senna", "Fernando Alonso", "Nigel Mansell",
-                         "Jackie Stewart", "Niki Lauda", "Jim Clark"), 
-                Wins=c(99,91,53,51,41,32,31,27,25,25), frame=rep('d',10))
-
-# adding frames to data
-w_10s <- rbind(a,b,c,d)
-
-
-# Ploting the graph for top 10 drivers
-ggplot(data = w_10s, aes(x=Driver, y=Wins, fill=Driver)) + 
-  geom_bar(stat = 'identity',width=0.5) +
-  geom_text(aes(label=Wins), hjust=1.6, color="white", size=3.5) +
+# plotting the graph
+f <- ggplot(data = constructors_points,aes(x=year, y=points_y,  colour=(Constructor))) +
+  geom_line( size=1) + 
+  geom_point() +
+  scale_color_viridis(discrete = T) +
+  facet_wrap(~constructors_points$Constructor) +
+  labs(x = "Years",
+       y = "Ponts per Year",
+       title = "Points per Year Comparison for Top 4 Teams")  +
   theme_minimal() +
-  coord_flip() +
-  scale_fill_viridis(discrete = T) +
-  ggtitle("Top 10 Drivers by Wins") +
-  # gganimate specific bits:
-  transition_states(
-    frame,
-    transition_length = 2,
-  ) +
-  ease_aes('sine-in-out')
+    theme(legend.position = "none") +
+    transition_reveal(year) 
+ 
+    animate(f, end_pause = 30,fps = 5)
+    
+    
+f
 
 ```
-
 ```{r pressure, echo=FALSE}
-driver_standings <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/driver_standings.csv')
-drivers <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/drivers.csv')
-races <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/races.csv')
-results <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/results.csv')
 
-driver_standings %>% left_join(drivers, by = c('driverId' = 'driverId')) %>%
-  left_join(results, by = c('raceId' = 'raceId', 'driverId' = 'driverId')) %>%
-  left_join(races, by = c('raceId' = 'raceId')) %>%
-  filter(surname %in% c('Hamilton', 'Schumacher', 'Verstappen') & forename %in% c('Lewis', 'Michael', 'Max')) %>%
-  arrange(year, round) %>%  # order by year and round so the races are in chronological order.
-  select(year, round, wins, points.x, points.y, position.x, position.y, surname) %>%
-  group_by(surname) %>%
-  mutate(race_number=row_number(),                                    # calculate the race number of each drivers career
-         race_position = as.numeric(position.y),                      # change race position to numeric
+driver_standings %>% left_join(drivers, by = c('driverId' = 'driverId')) %>% #Join to unite names and points
+  left_join(results, by = c('raceId' = 'raceId', 'driverId' = 'driverId')) %>%  # Driver position but not in the standing, but races
+  left_join(races, by = c('raceId' = 'raceId')) %>% # join to get number of races
+  filter(surname %in% c('Hamilton', 'Schumacher', 'Verstappen', 'Vettel', 'Prost') & forename %in% c('Lewis', 'Michael', 'Max', 'Sebastian', 'Alain')) %>% # Take out the five drivers of interest, 2 conditions because families race
+  arrange(year, round) %>%  # Order by year and then round so the races are in chronological order.
+  select(year, round, wins, points.x, points.y, position.x, position.y, surname) %>%  # Picking relevant columns
+  group_by(surname) %>% # Enables different counting of races for each driver instead of total races
+  mutate(race_number = row_number(),           # calculate the race number of each drivers career by counting rownumber for each driver
+         race_position = as.numeric(position.y),   # change race position to numeric
          count_wins = if_else(race_position == 1, 1, 0, missing = 0), # Keep track of each win
-         cumulative_wins = cumsum(count_wins)) %>%                    # Sum up the total number of wins
+         cumulative_wins = cumsum(count_wins)) %>%  # Sum up the total number of wins
   ggplot() +
   geom_line(aes(x=race_number, y=cumulative_wins, group=surname, colour=surname), size=1) +
-  scale_colour_manual(values=c('darkturquoise', 'red2', 'black')) +
-  labs(title = 'Hamilton, Schumacher and Verstappen: Cumulative F1 wins over time
-       ',
-       subtitle = 'Max Verstappen was slower to start winning races but has recently had a lot of wins and is \nstarting to catch up with Lewis Hamilton',
+  scale_colour_manual(values=c('darkturquoise', 'red2', 'black', 'green3', 'yellow3')) +
+  labs(title = 'Cumulative driver F1 wins over number of races',
        x = 'Race Number',
-       y = 'Cumulative Wins') +
+       y = 'Cumulative Wins', ) +
   theme_minimal() +
-  theme(plot.title = element_text(colour = 'white', family='Georgia', size = 16),
+  theme(plot.title = element_text(colour = 'white', family='Georgia', size = 16, hjust = 0.5),
         plot.subtitle = element_text(colour = 'white', family='Georgia', size = 14),
         axis.title = element_text(colour = 'white', family='Georgia'),
         axis.text = element_text(colour = 'white', family='Georgia'),
@@ -155,9 +109,13 @@ driver_standings %>% left_join(drivers, by = c('driverId' = 'driverId')) %>%
         plot.background = element_rect(fill='grey25'),
         panel.background = element_rect(fill='grey25', colour='grey25'),
         panel.grid.major=element_blank(),
-        panel.grid.minor=element_blank())
-
-ggsave('plots/2021W37_F1Racing.png')  
+        panel.grid.minor=element_blank()) + theme(plot.subtitle = element_text(family = "serif"),
+    panel.grid.major = element_line(colour = "white"),
+    panel.grid.minor = element_line(colour = "white"),
+    axis.title = element_text(family = "serif"),
+    axis.text = element_text(family = "serif"),
+    plot.title = element_text(family = "serif"),
+    legend.text = element_text(family = "serif"))
 
 
 
