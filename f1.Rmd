@@ -11,21 +11,16 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```
 
-```{r echo=FALSE, warning=FALSE, message=FALSE}
+```{r echo=TRUE, warning=FALSE, message=FALSE}
 
 library(tidyverse)
-library(gganimate)
-library(ggdark)
-library(jsonlite)
-library(httr)
 library(ggplot2)
-library(extrafont)
 library(data.table)
 library(viridis)
-library(bigreadr)
 
+#ggtheme assist used for first plot
 ```
-
+#theme assist look at ggpubr
 ```{r}
 
 circuits <- fread('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/circuits.csv')
