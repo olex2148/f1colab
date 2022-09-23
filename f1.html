@@ -380,15 +380,15 @@ constructors &lt;- fread(&#39;https://raw.githubusercontent.com/rfordatascience/
 <h2>5 Better Drivers’ cumulative wins by number of races <br> (Who is
 the GOAT?)</h2>
 <pre class="r"><code>driver_standings %&gt;% left_join(drivers, by = c(&#39;driverId&#39; = &#39;driverId&#39;)) %&gt;%    # Join to unite names and points
-  left_join(results, by = c(&#39;raceId&#39; = &#39;raceId&#39;, &#39;driverId&#39; = &#39;driverId&#39;)) %&gt;%  # Driver position but not in the standing, but races
-  left_join(races, by = c(&#39;raceId&#39; = &#39;raceId&#39;)) %&gt;%                             # Join to get number of races
+  left_join(results, by = c(&#39;raceId&#39; = &#39;raceId&#39;, &#39;driverId&#39; = &#39;driverId&#39;)) %&gt;%  # Driver position, not in the standing, but the races
+  left_join(races, by = c(&#39;raceId&#39; = &#39;raceId&#39;)) %&gt;%                             # Join to get number of races drivers have been in
   filter(surname %in% c(&#39;Hamilton&#39;, &#39;Schumacher&#39;, &#39;Verstappen&#39;, &#39;Vettel&#39;, &#39;Prost&#39;)
          &amp; forename %in% c(&#39;Lewis&#39;, &#39;Michael&#39;, &#39;Max&#39;, &#39;Sebastian&#39;, &#39;Alain&#39;))%&gt;% # Take out the five drivers of interest, 2 conditions because e.g. families race
   arrange(year, round) %&gt;%                                                      # Order by year and then round so the races are in chronological order
-  select(year, round, wins, points.x, points.y, position.x, position.y, surname) %&gt;%  # Picking relevant columns
+  select(year, round, wins, position.y, surname) %&gt;%                            # Picking relevant columns (race position)
   group_by(surname) %&gt;%                                                         # Enables different counting of races for each driver instead of total races
   mutate(race_number = row_number(),                                            # calculate the race number of each drivers career by counting row number for each driver
-         race_position = as.numeric(position.y),                                # change race position to numeric
+         race_position = as.numeric(position.y),                                # change race position to numeric, was character
          count_wins = if_else(race_position == 1, 1, 0, missing = 0),           # Keep track of each win
          cumulative_wins = cumsum(count_wins)) %&gt;%                              # Sum up the total number of wins
   ggplot() +                                                                    # ggplot Theme Assist :^)

@@ -47,15 +47,15 @@ constructors <- fread('https://raw.githubusercontent.com/rfordatascience/tidytue
 ```{r, warning=FALSE}
 
 driver_standings %>% left_join(drivers, by = c('driverId' = 'driverId')) %>%    # Join to unite names and points
-  left_join(results, by = c('raceId' = 'raceId', 'driverId' = 'driverId')) %>%  # Driver position but not in the standing, but races
-  left_join(races, by = c('raceId' = 'raceId')) %>%                             # Join to get number of races
+  left_join(results, by = c('raceId' = 'raceId', 'driverId' = 'driverId')) %>%  # Driver position, not in the standing, but the races
+  left_join(races, by = c('raceId' = 'raceId')) %>%                             # Join to get number of races drivers have been in
   filter(surname %in% c('Hamilton', 'Schumacher', 'Verstappen', 'Vettel', 'Prost')
          & forename %in% c('Lewis', 'Michael', 'Max', 'Sebastian', 'Alain'))%>% # Take out the five drivers of interest, 2 conditions because e.g. families race
   arrange(year, round) %>%                                                      # Order by year and then round so the races are in chronological order
-  select(year, round, wins, points.x, points.y, position.x, position.y, surname) %>%  # Picking relevant columns
+  select(year, round, wins, position.y, surname) %>%                            # Picking relevant columns (race position)
   group_by(surname) %>%                                                         # Enables different counting of races for each driver instead of total races
   mutate(race_number = row_number(),                                            # calculate the race number of each drivers career by counting row number for each driver
-         race_position = as.numeric(position.y),                                # change race position to numeric
+         race_position = as.numeric(position.y),                                # change race position to numeric, was character
          count_wins = if_else(race_position == 1, 1, 0, missing = 0),           # Keep track of each win
          cumulative_wins = cumsum(count_wins)) %>%                              # Sum up the total number of wins
   ggplot() +                                                                    # ggplot Theme Assist :^)
