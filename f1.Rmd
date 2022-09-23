@@ -59,7 +59,7 @@ driver_standings %>% left_join(drivers, by = c('driverId' = 'driverId')) %>%    
          cumulative_wins = cumsum(count_wins)) %>%                              # Sum up the total number of wins
   ggplot() +                                                                    # ggplot Theme Assist :^)
   geom_line(aes(x = race_number, y = cumulative_wins, group = surname, colour = surname), size = 1.5) +
-  scale_colour_manual(values = c('darkturquoise', 'red2', 'black', 'green3', 'yellow3')) +
+  scale_colour_manual(values = c('darkturquoise', 'red2', 'pink1', 'green3', 'yellow3')) +
   labs(title = 'Cumulative driver F1 wins over number of races',
        x = 'Race Number',
        y = 'Cumulative Wins', ) +
@@ -109,7 +109,7 @@ str(results)
 
 
 ```{r}
-#dataframe with fastest lap speed driver id and race id, this makes it earsier to add fastest lap to dataframes 
+#dataframe with fastest lap speed, driver id and race id, this makes it earsier to add fastest lap to dataframes later
 speed <- results[,c("raceId","driverId","fastestLapSpeed")]
 
 #new data frame joins driver standings with races and drivers dataframes 
