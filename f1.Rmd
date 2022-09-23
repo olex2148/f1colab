@@ -16,7 +16,11 @@ library(ggplot2)
 library(extrafont)
 library(data.table)
 library(viridis)
+library(bigreadr)
 
+```
+
+```{r}
 
 circuits <- fread('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/circuits.csv')
 driver_standings <- fread('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/driver_standings.csv')
@@ -33,68 +37,33 @@ constructors <- fread('https://raw.githubusercontent.com/rfordatascience/tidytue
 ## R Markdown
 
 
-```{r}
+```{r, echo==FALSE}
 
 
 driver_results_df <- driver_standings %>% 
-  left_join(races, by = "raceId") %>% 
-  rename(driver_url = url) %>% 
+  left_join(races, by = "raceId") %>%
   left_join(drivers, by = "driverId")
   
 head(driver_results_df)
 ```
 
 ```{r}
-# merging data tables required for calculations
-constructors_points <- constructors[constructor_results, on = "constructorId"]
-constructors_points <- races[constructors_points, on ="raceId"]
 
-# calculating sum of points per year
-constructors_points <- constructors_points[, .(points_y = sum(points)), by= .(year, constructorId, i.name)]
-
-# Filtering the top 4 teams and the year of comparison
-constructors_points <- constructors_points[i.name %in% c('Red Bull','Mercedes', 'McLaren','Ferrari')]
-constructors_points <- constructors_points[year %in% c(2010:2021)]
-
-# renaming a column
-constructors_points <- constructors_points %>% 
-  rename(Constructor = i.name)
-
-# plotting the graph
-f <- ggplot(data = constructors_points,aes(x=year, y=points_y,  colour=(Constructor))) +
-  geom_line( size=1) + 
-  geom_point() +
-  scale_color_viridis(discrete = T) +
-  facet_wrap(~constructors_points$Constructor) +
-  labs(x = "Years",
-       y = "Ponts per Year",
-       title = "Points per Year Comparison for Top 4 Teams")  +
-  theme_minimal() +
-    theme(legend.position = "none") +
-    transition_reveal(year) 
- 
-    animate(f, end_pause = 30,fps = 5)
-    
-    
-f
-
-```
-```{r pressure, echo=FALSE}
-
-driver_standings %>% left_join(drivers, by = c('driverId' = 'driverId')) %>% #Join to unite names and points
+driver_standings %>% left_join(drivers, by = c('driverId' = 'driverId')) %>%    #Join to unite names and points
   left_join(results, by = c('raceId' = 'raceId', 'driverId' = 'driverId')) %>%  # Driver position but not in the standing, but races
-  left_join(races, by = c('raceId' = 'raceId')) %>% # join to get number of races
-  filter(surname %in% c('Hamilton', 'Schumacher', 'Verstappen', 'Vettel', 'Prost') & forename %in% c('Lewis', 'Michael', 'Max', 'Sebastian', 'Alain')) %>% # Take out the five drivers of interest, 2 conditions because families race
-  arrange(year, round) %>%  # Order by year and then round so the races are in chronological order.
+  left_join(races, by = c('raceId' = 'raceId')) %>%                             # join to get number of races
+  filter(surname %in% c('Hamilton', 'Schumacher', 'Verstappen', 'Vettel', 'Prost')
+         & forename %in% c('Lewis', 'Michael', 'Max', 'Sebastian', 'Alain'))%>% # Take out the five drivers of interest, 2 conditions because e.g. families race
+  arrange(year, round) %>%                                                      # Order by year and then round so the races are in chronological order
   select(year, round, wins, points.x, points.y, position.x, position.y, surname) %>%  # Picking relevant columns
-  group_by(surname) %>% # Enables different counting of races for each driver instead of total races
-  mutate(race_number = row_number(),           # calculate the race number of each drivers career by counting rownumber for each driver
-         race_position = as.numeric(position.y),   # change race position to numeric
-         count_wins = if_else(race_position == 1, 1, 0, missing = 0), # Keep track of each win
-         cumulative_wins = cumsum(count_wins)) %>%  # Sum up the total number of wins
+  group_by(surname) %>%                                                         # Enables different counting of races for each driver instead of total races
+  mutate(race_number = row_number(),                                            # calculate the race number of each drivers career by counting row number for each driver
+         race_position = as.numeric(position.y),                                # change race position to numeric
+         count_wins = if_else(race_position == 1, 1, 0, missing = 0),           # Keep track of each win
+         cumulative_wins = cumsum(count_wins)) %>%                              # Sum up the total number of wins
   ggplot() +
-  geom_line(aes(x=race_number, y=cumulative_wins, group=surname, colour=surname), size=1) +
-  scale_colour_manual(values=c('darkturquoise', 'red2', 'black', 'green3', 'yellow3')) +
+  geom_line(aes(x = race_number, y = cumulative_wins, group = surname, colour = surname), size = 1.1) +
+  scale_colour_manual(values = c('darkturquoise', 'red2', 'black', 'green3', 'yellow3')) +
   labs(title = 'Cumulative driver F1 wins over number of races',
        x = 'Race Number',
        y = 'Cumulative Wins', ) +
@@ -115,8 +84,9 @@ driver_standings %>% left_join(drivers, by = c('driverId' = 'driverId')) %>% #Jo
     axis.title = element_text(family = "serif"),
     axis.text = element_text(family = "serif"),
     plot.title = element_text(family = "serif"),
-    legend.text = element_text(family = "serif"))
-
+    legend.text = element_text(family = "serif")) +
+    theme(panel.grid.major = element_line(colour = "azure3"),
+    panel.grid.minor = element_line(colour = "azure3"))
 
 
 ```
