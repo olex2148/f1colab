@@ -22,7 +22,7 @@ library(viridis)
 
 #ggtheme assist used for first plot
 ```
-#theme assist look at ggpubr
+
 ```{r}
 
 circuits <- fread('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-09-07/circuits.csv')
@@ -121,8 +121,6 @@ driver_results_df <- driver_standings %>%
   filter(position == "1")                                #filter for winner of race, this means we only plot for the races where the driver won
 
 
-
-driver_results_df <- na.omit(driver_results_df)                                          #remove NA if any
 driver_results_df2 <- driver_results_df[!driver_results_df$fastestLapSpeed == "\\N", ]   #remove "\\N" this is NA equivalent
 
 #Top10 is a df with the top 10 drivers by number of wins, these will be the only drivers included in the plot
@@ -143,9 +141,15 @@ ggplot(aes(x= fastestLapSpeed, y = Driver)) +
   geom_violin(aes(fill = nationality, color = nationality), width = 0.5, size = 0.1) +
   scale_fill_viridis(discrete = T) +
   scale_color_viridis(discrete = T) +
-  geom_boxplot(width = 0.2, size = 0.05, alpha = 0.3, color = "deepPink4") +
-  ggtitle("Max speed per lap by Driver when they won the race (2010-2021)")+
-  theme_minimal() +
+  geom_boxplot(width = 0.2, size = 0.05, alpha = 0.3, color = "red") +
+  labs(title = "Max lap speed by driver when they won the race",  subtitle = "2010-2021" ) +
+  theme(plot.title = element_text(size = 16, color = "Black"),
+        plot.subtitle = element_text(size = 14, color = "red")
+        )+
+  
+  
+  
+#  theme_bw() +
   labs(
     fill = "nationality", 
     color = "nationality",
