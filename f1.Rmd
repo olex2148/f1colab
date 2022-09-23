@@ -44,6 +44,8 @@ constructors <- fread('https://raw.githubusercontent.com/rfordatascience/tidytue
 
 
 
+
+
 ```{r, warning=FALSE}
 
 driver_standings %>% left_join(drivers, by = c('driverId' = 'driverId')) %>%    # Join to unite names and points
@@ -87,3 +89,73 @@ driver_standings %>% left_join(drivers, by = c('driverId' = 'driverId')) %>%    
 
 
 ```
+
+<br>
+
+# Second Plot
+
+<br>
+
+##  Violin plot with max speed per lap for the best drivers in F1
+
+<br>
+
+### 2 dataframes are immported for this plot
+
+```{r}
+head(driver_standings)
+str(results)
+
+```
+
+
+
+
+```{r}
+#dataframe with fastest lap speed driver id and race id, this makes it earsier to add fastest lap to dataframes 
+speed <- results[,c("raceId","driverId","fastestLapSpeed")]
+
+#new data frame joins driver standings with races and drivers dataframes 
+driver_results_df <- driver_standings %>%                                                
+  left_join(races, by = "raceId") %>%
+  left_join(drivers, by = "driverId")%>%  
+  mutate(Driver = paste(forename, surname)) %>%
+  left_join(speed, by = c("driverId","raceId")) %>%      # addition of speed data frame has 
+  filter(position == "1")                                #filter for winner of race, this means we only plot for the races where the driver won
+
+
+
+driver_results_df <- na.omit(driver_results_df)                                          #remove NA if any
+driver_results_df2 <- driver_results_df[!driver_results_df$fastestLapSpeed == "\\N", ]   #remove "\\N" this is NA equivalent
+
+#Top10 is a df with the top 10 drivers by number of wins, these will be the only drivers included in the plot
+Top10 = driver_results_df2 %>% 
+  filter(position == "1") %>%
+  count(Driver, sort=T) %>% slice(1:10)
+
+#change lap speed from character to integer
+driver_results_df2$fastestLapSpeed <-as.integer(driver_results_df2$fastestLapSpeed)
+
+#filter driver_results_df2 with the top 10 drivers
+driver_results_df2 <- driver_results_df2 %>%
+  filter(Driver %in% c(Top10$Driver))
+
+
+driver_results_df2 %>% 
+ggplot(aes(x= fastestLapSpeed, y = Driver)) +
+  geom_violin(aes(fill = nationality, color = nationality), width = 0.5, size = 0.1) +
+  scale_fill_viridis(discrete = T) +
+  scale_color_viridis(discrete = T) +
+  geom_boxplot(width = 0.2, size = 0.05, alpha = 0.3, color = "deepPink4") +
+  ggtitle("Max speed per lap by Driver when they won the race (2010-2021)")+
+  theme_minimal() +
+  labs(
+    fill = "nationality", 
+    color = "nationality",
+    y = NULL,
+    x = "Fastest Lap Avg Speed (KM/H)") 
+```
+
+
+
+
